@@ -37,37 +37,10 @@ class ConnexionPDO {
                     $requetePrepare->bindParam(":$key", $value);				
                 }
             }	
-            $requetePrepare->execute();			
-            return ($requetePrepare->rowCount() != 0);
+            return $requetePrepare->execute();			
         }catch(Exception $e){
             return null;
         }
-    }
-
-    /**
-     * Exécution d'une requête select retournant plusieurs lignes
-     * @param string $requete
-     * @param array $param
-     * @return lignes récupérées
-     */
-    public function queryAll($requete, $param=null){
-        try{
-            $requetePrepare = $this->conn->prepare($requete);
-            if($param != null){
-                foreach($param as $key => &$value){
-                    $requetePrepare->bindParam(":$key", $value);
-                }
-            }
-            $requetePrepare->execute();				
-            $result = $requetePrepare->fetchAll(PDO::FETCH_ASSOC);
-            if($requetePrepare->rowCount() != 0){
-                return $result;
-            }else{
-                return null;
-            }
-        }catch(Exception $e){
-            return null;
-        }		
     }
 
     /**
