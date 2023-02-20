@@ -7,7 +7,7 @@ include_once("ConnexionPDO.php");
 class AccessBDD {
 	
     public $login="root";
-    public $mdp="root";
+    public $mdp="";
     public $bd="mediatek86";
     public $serveur="localhost";
     public $port="3306";	
@@ -79,7 +79,7 @@ class AccessBDD {
      */
     public function selectAllTableSimple($table){
         $req = "select * from $table order by libelle;";		
-        return $this->conn->queryAll($req);		
+        return $this->conn->query($req);		
     }
 
     /**
@@ -94,7 +94,7 @@ class AccessBDD {
         $req .= "join public p on p.id=d.idPublic ";
         $req .= "join rayon r on r.id=d.idRayon ";
         $req .= "order by titre ";		
-        return $this->conn->queryAll($req);
+        return $this->conn->query($req);
     }	
 
     /**
@@ -109,7 +109,7 @@ class AccessBDD {
         $req .= "join public p on p.id=d.idPublic ";
         $req .= "join rayon r on r.id=d.idRayon ";
         $req .= "order by titre ";	
-        return $this->conn->queryAll($req);
+        return $this->conn->query($req);
     }	
 
     /**
@@ -124,7 +124,7 @@ class AccessBDD {
         $req .= "join public p on p.id=d.idPublic ";
         $req .= "join rayon r on r.id=d.idRayon ";
         $req .= "order by titre ";
-        return $this->conn->queryAll($req);
+        return $this->conn->query($req);
     }	
 
     /**
@@ -140,7 +140,7 @@ class AccessBDD {
         $req .= "from exemplaire e join document d on e.id=d.id ";
         $req .= "where e.id = :id ";
         $req .= "order by e.dateAchat DESC";		
-        return $this->conn->queryAll($req, $param);
+        return $this->conn->query($req, $param);
     }		
 
     /**
