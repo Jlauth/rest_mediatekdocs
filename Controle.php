@@ -54,28 +54,16 @@ class Controle{
         }
     }
 
-    /**
-     * requete arrivée en DELETE
-     * @param string $table nom de la table
-     * @param array $champs nom et valeur des champs
-     */
-    public function delete($table, $champs){
-        $result = $this->accessBDD->delete($table, $champs);	
-        if ($result == null || $result == false){
-            $this->reponse(400, "requete invalide");
-        }else{	
-            $this->reponse(200, "OK");
-        }
-    }
-
+   
     /**
      * requete arrivée en POST (insert)
      * @param string $table nom de la table
      * @param array $champs nom et valeur des champs
      */
     public function post($table, $champs){
+        /** @var type $result */
         $result = $this->accessBDD->insertOne($table, $champs);	
-        if ($result == null || $result == false){
+        if ($result === null || $result === false){
             $this->reponse(400, "requete invalide");
         }else{	
             $this->reponse(200, "OK");
@@ -97,6 +85,20 @@ class Controle{
         }
     }
 	
+     /**
+     * requete arrivée en DELETE
+     * @param string $table nom de la table
+     * @param array $champs nom et valeur des champs
+     */
+    public function delete($table, $champs){
+        $result = $this->accessBDD->deleteOne($table, $champs);	
+        if ($result == null || $result == false){
+            $this->reponse(400, "requete invalide");
+        }else{	
+            $this->reponse(200, "OK");
+        }
+    }
+    
     /**
      * login et/ou pwd incorrects
      */
