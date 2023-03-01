@@ -61,7 +61,6 @@ class Controle{
      * @param array $champs nom et valeur des champs
      */
     public function post($table, $champs){
-        /** @var type $result */
         $result = $this->accessBDD->insertOne($table, $champs);	
         if ($result === null || $result === false){
             $this->reponse(400, "requete invalide");
