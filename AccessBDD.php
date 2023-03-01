@@ -6,7 +6,6 @@ include_once("ConnexionPDO.php");
  * Classe de construction des requêtes SQL à envoyer à la BDD
  */
 class AccessBDD {
-
     public $login = "root";
     public $mdp = "root";
     public $bd = "mediatek86";
