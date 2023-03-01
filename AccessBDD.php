@@ -60,6 +60,8 @@ class AccessBDD {
             switch ($table) {
                 case "exemplaire" :
                     return $this->selectAllExemplairesRevue($id);
+                case "commandedocument" :
+                    return $this->selectAllCommandesLivre($id);
                 default:
                     // cas d'un select portant sur une table simple			
                     $param = array(
@@ -133,9 +135,7 @@ class AccessBDD {
      * @return lignes de la requete
      */
     public function selectAllExemplairesRevue($id) {
-        $param = array(
-            "id" => $id
-        );
+        $param = ["id" => $id];
         $req = "Select e.id, e.numero, e.dateAchat, e.photo, e.idEtat ";
         $req .= "from exemplaire e join document d on e.id=d.id ";
         $req .= "where e.id = :id ";
@@ -144,87 +144,19 @@ class AccessBDD {
     }
 
     /**
-     * Insertion dans livre
-     * @param type $champs
+     * Récupération de toutes les commandes d'un livre
+     * @param type $id id de la commande livre
+     * @return lignes de la requête
      */
-    public function insertLivre($champs) {
-        // tableau associatif des données document
-        $champsDocument = [
-            "Id" => $champs["Id"],
-            "Titre" => $champs["Titre"],
-            "Image" => $champs["Image"],
-            "IdRayon" => $champs["IdRayon"],
-            "IdPublic" => $champs["IdPublic"],
-            "IdGenre" => $champs["IdGenre"]
-        ];
-        $this->insertSimple("document", $champsDocument);
-
-        // tableau associatif des données livres_dvd
-        $champsLivresDvd = ["Id" => $champs["Id"]];
-        $this->insertSimple("livres_dvd", $champsLivresDvd);
-
-        // tableau associatif des données livre
-        $champsLivre = [
-            "Id" => $champs["Id"],
-            "Isbn" => $champs["Isbn"],
-            "Auteur" => $champs["Auteur"],
-            "Collection" => $champs["Collection"]
-        ];
-        $this->insertSimple("livre", $champsLivre);
-    }
-
-    /**
-     * Insertion dans lives_dvd
-     * @param type $champs
-     */
-    public function insertDvd($champs) {
-        // tableau associatif des données document
-        $champsDocument = [
-            "Id" => $champs["Id"],
-            "Titre" => $champs["Titre"],
-            "Image" => $champs["Image"],
-            "IdRayon" => $champs["IdRayon"],
-            "IdPublic" => $champs["IdPublic"],
-            "IdGenre" => $champs["IdGenre"]
-        ];
-        $this->insertSimple("document", $champsDocument);
-
-        // tableau associatif des données livres_dvd
-        $champsLivresDvd = ["Id" => $champs["Id"]];
-        $this->insertSimple("livres_dvd", $champsLivresDvd);
-
-        // tableau associatif des données dvd
-        $champsDvd = [
-            "Id" => $champs["Id"],
-            "Duree" => $champs["Duree"],
-            "Realisateur" => $champs["Realisateur"],
-            "Synopsis" => $champs["Synopsis"]
-        ];
-        $this->insertSimple("dvd", $champsDvd);
-    }
-
-    /**
-     * Ajout d'une revue
-     * @param type $champs nom et valeur de chaque champs
-     */
-    public function insertRevue($champs) {
-        // tableau associatif des données document
-        $champsDocument = [
-            "Id" => $champs["Id"],
-            "Titre" => $champs["Titre"],
-            "Image" => $champs["Image"],
-            "IdRayon" => $champs["IdRayon"],
-            "IdPublic" => $champs["IdPublic"],
-            "IdGenre" => $champs["IdGenre"]
-        ];
-        $this->insertSimple("document", $champsDocument);
-        // tableau associatif des données revue
-        $champsRevue = [
-            "Id" => $champs["Id"],
-            "Periodicite" => $champs["Periodicite"],
-            "DelaiMiseADispo" => $champs["DelaiMiseADispo"]
-        ];
-        $this->insertSimple("revue", $champsRevue);
+    public function selectAllCommandesLivre($id) {
+        $param = ["idDocument" => $id];
+        $req = "Select c.id, c.dateCommande, c.montant, cd.nbExemplaire, cd.idSuivi, cd.idLivreDvd, s.libelle ";
+        $req .= "from commande c ";
+        $req .= "join commandedocument cd on c.id=cd.id ";
+        $req .= "join suivi s on cd.idSuivi=s.id ";
+        $req .= "where cd.id=c.id ";
+        $req .= "order by c.dateCommande DESC";
+        return $this->conn->query($req, $param);
     }
 
     /**
@@ -270,6 +202,8 @@ class AccessBDD {
                     return $this->insertDvd($champs);
                 case "revue" :
                     return $this->insertRevue($champs);
+                case "commandelivre" :
+                    return $this->insertCommandeLivre($champs);
                 default:
                     // cas d'un insert portant sur une table simple
                     return $this->insertSimple($table, $champs);
@@ -280,77 +214,119 @@ class AccessBDD {
     }
 
     /**
-     * Modification d'un livre
-     * @param type $id
+     * Insertion dans livre
      * @param type $champs
      */
-    public function updateLivre($id, $champs) {
+    public function insertLivre($champs) {
         // tableau associatif des données document
         $champsDocument = [
+            "Id" => $champs["Id"],
             "Titre" => $champs["Titre"],
             "Image" => $champs["Image"],
             "IdRayon" => $champs["IdRayon"],
             "IdPublic" => $champs["IdPublic"],
             "IdGenre" => $champs["IdGenre"]
         ];
-        $this->updateSimple("document", $id, $champsDocument);
+        $resultDocument = $this->insertSimple("document", $champsDocument);
+
+        // tableau associatif des données livres_dvd
+        $champsLivresDvd = ["Id" => $champs["Id"]];
+        $resultLivresDvd = $this->insertSimple("livres_dvd", $champsLivresDvd);
 
         // tableau associatif des données livre
         $champsLivre = [
+            "Id" => $champs["Id"],
             "Isbn" => $champs["Isbn"],
             "Auteur" => $champs["Auteur"],
             "Collection" => $champs["Collection"]
         ];
-        $this->updateSimple("livre", $id, $champsLivre);
+        $resultLivre = $this->insertSimple("livre", $champsLivre);
+
+        return $resultDocument && $resultLivresDvd && $resultLivre;
     }
 
     /**
-     * Modification d'un dvd
-     * @param type $id
+     * Insertion dans lives_dvd
      * @param type $champs
      */
-    public function updateDvd($id, $champs) {
+    public function insertDvd($champs) {
         // tableau associatif des données document
         $champsDocument = [
+            "Id" => $champs["Id"],
             "Titre" => $champs["Titre"],
             "Image" => $champs["Image"],
             "IdRayon" => $champs["IdRayon"],
             "IdPublic" => $champs["IdPublic"],
             "IdGenre" => $champs["IdGenre"]
         ];
-        $this->updateSimple("document", $id, $champsDocument);
+        $resultDocument = $this->insertSimple("document", $champsDocument);
 
-        // tableau associatif des données livre
+        // tableau associatif des données livres_dvd
+        $champsLivresDvd = ["Id" => $champs["Id"]];
+        $resultLivresDvd = $this->insertSimple("livres_dvd", $champsLivresDvd);
+
+        // tableau associatif des données dvd
         $champsDvd = [
+            "Id" => $champs["Id"],
             "Duree" => $champs["Duree"],
             "Realisateur" => $champs["Realisateur"],
             "Synopsis" => $champs["Synopsis"]
         ];
-        $this->updateSimple("dvd", $id, $champsDvd);
+        $resultDvd = $this->insertSimple("dvd", $champsDvd);
+
+        return $resultDocument && $resultLivresDvd && $resultDvd;
     }
 
     /**
-     * Modification d'une revue
-     * @param type $id
-     * @param type $champs
+     * Ajout d'une commande de type livre
+     * @param type $champs non et valeur de chaque champs
      */
-    public function updateRevue($id, $champs) {
+    public function insertCommandeLivre($champs) {
+        // tableau associatif des données de commande
+        $champsCommande = [
+            "Id" => $champs["Id"],
+            "DateCommande" => $champs["DateCommande"],
+            "Montant" => $champs["Montant"]
+        ];
+        $resultCommande = $this->insertSimple("commande", $champsCommande);
+
+        // tableau associatif des données commande document (ici livre)
+        $champsCommandeDocument = [
+            "Id" => $champs["Id"],
+            "NbExemplaire" => $champs["NbExemplaire"],
+            "IdLivreDvd" => $champs["IdLivreDvd"],
+            "IdSuivi" => $champs["IdSuivi"]
+        ];
+        $resultCommandeDocument = $this->insertSimple("commandedocument", $champsCommandeDocument);
+
+        return $resultCommande && $resultCommandeDocument;
+    }
+
+    /**
+     * Ajout d'une revue
+     * @param type $champs nom et valeur de chaque champs
+     */
+    public function insertRevue($champs) {
         // tableau associatif des données document
         $champsDocument = [
+            "Id" => $champs["Id"],
             "Titre" => $champs["Titre"],
             "Image" => $champs["Image"],
             "IdRayon" => $champs["IdRayon"],
             "IdPublic" => $champs["IdPublic"],
             "IdGenre" => $champs["IdGenre"]
         ];
-        $this->updateSimple("document", $id, $champsDocument);
+        $resultDocument = $this->insertSimple("document", $champsDocument);
 
-        // tableau associatif des données livre
+        // tableau associatif des données revue
         $champsRevue = [
+            "Id" => $champs["Id"],
             "Periodicite" => $champs["Periodicite"],
             "DelaiMiseADispo" => $champs["DelaiMiseADispo"]
         ];
-        $this->updateSimple("revue", $id, $champsRevue);
+        $resultRevue = $this->insertSimple("revue", $champsRevue);
+
+        return $resultDocument && $resultRevue;
     }
 
     /**
@@ -381,7 +357,6 @@ class AccessBDD {
      * Modification d'une ligne dans une table
      * @param string $table nom de la table
      * @param string $id id de la ligne à modifier
-     * @param array $param nom et valeur de chaque champs de la ligne
      * @return true si la modification a fonctionné
      */
     public function updateOne($table, $id, $champs) {
@@ -403,83 +378,83 @@ class AccessBDD {
     }
 
     /**
-     * Suppression d'un livre
-     * @param type $champs nom et valeur de chaque champs
+     * Modification d'un livre
+     * @param type $id
+     * @param type $champs
      */
-    public function deleteLivre($champs) {
+    public function updateLivre($id, $champs) {
+        // tableau associatif des données document
+        $champsDocument = [
+            "Titre" => $champs["Titre"],
+            "Image" => $champs["Image"],
+            "IdRayon" => $champs["IdRayon"],
+            "IdPublic" => $champs["IdPublic"],
+            "IdGenre" => $champs["IdGenre"]
+        ];
+        $resultDocument = $this->updateSimple("document", $id, $champsDocument);
+
         // tableau associatif des données livre
         $champsLivre = [
-            "Id" => $champs["Id"],
             "Isbn" => $champs["Isbn"],
             "Auteur" => $champs["Auteur"],
             "Collection" => $champs["Collection"]
         ];
-        $this->deleteSimple("livre", $champsLivre);
-        // tableau associatif des données livres_dvd
-        $champsLivresDvd = ["Id" => $champs["Id"]];
-        $this->deleteSimple("livres_dvd", $champsLivresDvd);
+        $resultLivre = $this->updateSimple("livre", $id, $champsLivre);
+
+        return $resultDocument && $resultLivre;
+    }
+
+    /**
+     * Modification d'un dvd
+     * @param type $id
+     * @param type $champs
+     */
+    public function updateDvd($id, $champs) {
         // tableau associatif des données document
         $champsDocument = [
-            "Id" => $champs["Id"],
             "Titre" => $champs["Titre"],
             "Image" => $champs["Image"],
             "IdRayon" => $champs["IdRayon"],
             "IdPublic" => $champs["IdPublic"],
             "IdGenre" => $champs["IdGenre"]
         ];
-        $this->deleteSimple("document", $champsDocument);
-    }
+        $resultDocument = $this->updateSimple("document", $id, $champsDocument);
 
-    /**
-     * Suppression d'un dvd
-     * @param type $champs nom et valeur de chaque champs
-     */
-    public function deleteDvd($champs) {
         // tableau associatif des données livre
         $champsDvd = [
-            "Id" => $champs["Id"],
             "Duree" => $champs["Duree"],
             "Realisateur" => $champs["Realisateur"],
             "Synopsis" => $champs["Synopsis"]
         ];
-        $this->deleteSimple("dvd", $champsDvd);
-        // tableau associatif des données livres_dvd
-        $champsLivresDvd = ["Id" => $champs["Id"]];
-        $this->deleteSimple("livres_dvd", $champsLivresDvd);
-        // tableau associatif des données document
-        $champsDocument = [
-            "Id" => $champs["Id"],
-            "Titre" => $champs["Titre"],
-            "Image" => $champs["Image"],
-            "IdRayon" => $champs["IdRayon"],
-            "IdPublic" => $champs["IdPublic"],
-            "IdGenre" => $champs["IdGenre"]
-        ];
-        $this->deleteSimple("document", $champsDocument);
+        $resultDvd = $this->updateSimple("dvd", $id, $champsDvd);
+
+        return $resultDocument && $resultDvd;
     }
 
     /**
-     * Suppression d'une revue
-     * @param type $champs nom et valeur de chaque champs
+     * Modification d'une revue
+     * @param type $id
+     * @param type $champs
      */
-    public function deleteRevue($champs) {
-        // tableau associatif des données revue
-        $champsRevue = [
-            "Id" => $champs["Id"],
-            "Periodicite" => $champs["Periodicite"],
-            "DelaiMiseADispo" => $champs["DelaiMiseADispo"]
-        ];
-        $this->deleteSimple("revue", $champsRevue);
+    public function updateRevue($id, $champs) {
         // tableau associatif des données document
         $champsDocument = [
-            "Id" => $champs["Id"],
             "Titre" => $champs["Titre"],
             "Image" => $champs["Image"],
             "IdRayon" => $champs["IdRayon"],
             "IdPublic" => $champs["IdPublic"],
             "IdGenre" => $champs["IdGenre"]
         ];
-        $this->deleteSimple("document", $champsDocument);
+        $resultDocument = $this->updateSimple("document", $id, $champsDocument);
+
+        // tableau associatif des données livre
+        $champsRevue = [
+            "Periodicite" => $champs["Periodicite"],
+            "DelaiMiseADispo" => $champs["DelaiMiseADispo"]
+        ];
+        $resultRevue = $this->updateSimple("revue", $id, $champsRevue);
+
+        return $resultDocument && $resultRevue;
     }
 
     public function deleteSimple($table, $champs) {
@@ -497,6 +472,12 @@ class AccessBDD {
         }
     }
 
+    /**
+     * Suppresion d'une ou plusieurs lignes dans une table
+     * @param string $table nom de la table
+     * @param array $champs nom et valeur de chaque champs
+     * @return true si la suppression a fonctionné
+     */
     public function deleteOne($table, $champs) {
         if ($this->conn != null && $champs != null) {
             switch ($table) {
@@ -513,6 +494,97 @@ class AccessBDD {
         } else {
             return null;
         }
+    }
+
+    /**
+     * Suppression d'un livre
+     * @param type $champs nom et valeur de chaque champs
+     */
+    public function deleteLivre($champs) {
+        // tableau associatif des données livre
+        $champsLivre = [
+            "Id" => $champs["Id"],
+            "Isbn" => $champs["Isbn"],
+            "Auteur" => $champs["Auteur"],
+            "Collection" => $champs["Collection"]
+        ];
+        $resultLivre = $this->deleteSimple("livre", $champsLivre);
+
+        // tableau associatif des données livres_dvd
+        $champsLivresDvd = ["Id" => $champs["Id"]];
+        $resultLivresDvd = $this->deleteSimple("livres_dvd", $champsLivresDvd);
+
+        // tableau associatif des données document
+        $champsDocument = [
+            "Id" => $champs["Id"],
+            "Titre" => $champs["Titre"],
+            "Image" => $champs["Image"],
+            "IdRayon" => $champs["IdRayon"],
+            "IdPublic" => $champs["IdPublic"],
+            "IdGenre" => $champs["IdGenre"]
+        ];
+        $resultDocument = $this->deleteSimple("document", $champsDocument);
+
+        return $resultLivre && $resultLivresDvd && $resultDocument;
+    }
+
+    /**
+     * Suppression d'un dvd
+     * @param type $champs nom et valeur de chaque champs
+     */
+    public function deleteDvd($champs) {
+        // tableau associatif des données livre
+        $champsDvd = [
+            "Id" => $champs["Id"],
+            "Duree" => $champs["Duree"],
+            "Realisateur" => $champs["Realisateur"],
+            "Synopsis" => $champs["Synopsis"]
+        ];
+        $resultDvd = $this->deleteSimple("dvd", $champsDvd);
+
+        // tableau associatif des données livres_dvd
+        $champsLivresDvd = ["Id" => $champs["Id"]];
+        $resultLivresDvd = $this->deleteSimple("livres_dvd", $champsLivresDvd);
+
+        // tableau associatif des données document
+        $champsDocument = [
+            "Id" => $champs["Id"],
+            "Titre" => $champs["Titre"],
+            "Image" => $champs["Image"],
+            "IdRayon" => $champs["IdRayon"],
+            "IdPublic" => $champs["IdPublic"],
+            "IdGenre" => $champs["IdGenre"]
+        ];
+        $resultDocument = $this->deleteSimple("document", $champsDocument);
+
+        return $resultDvd && $resultLivresDvd && $resultDocument;
+    }
+
+    /**
+     * Suppression d'une revue
+     * @param type $champs nom et valeur de chaque champs
+     */
+    public function deleteRevue($champs) {
+        // tableau associatif des données revue
+        $champsRevue = [
+            "Id" => $champs["Id"],
+            "Periodicite" => $champs["Periodicite"],
+            "DelaiMiseADispo" => $champs["DelaiMiseADispo"]
+        ];
+        $resultRevue = $this->deleteSimple("revue", $champsRevue);
+
+        // tableau associatif des données document
+        $champsDocument = [
+            "Id" => $champs["Id"],
+            "Titre" => $champs["Titre"],
+            "Image" => $champs["Image"],
+            "IdRayon" => $champs["IdRayon"],
+            "IdPublic" => $champs["IdPublic"],
+            "IdGenre" => $champs["IdGenre"]
+        ];
+        $resultDocument = $this->deleteSimple("document", $champsDocument);
+
+        return $resultRevue && $resultDocument;
     }
 
 }
