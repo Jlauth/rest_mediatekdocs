@@ -6,6 +6,7 @@ include_once("ConnexionPDO.php");
  * Classe de construction des requêtes SQL à envoyer à la BDD
  */
 class AccessBDD {
+
     public $login = "root";
     public $mdp = "root";
     public $bd = "mediatek86";
@@ -40,6 +41,8 @@ class AccessBDD {
                     return $this->selectAllRevues();
                 case "exemplaire" :
                     return $this->selectAllExemplairesRevue();
+                case "commandeslivres" :
+                    return $this->selectAllCommandesDocuments();
                 default:
                     // cas d'un select portant sur une table simple, avec tri sur le libellé
                     return $this->selectAllTableSimple($table);
@@ -61,7 +64,7 @@ class AccessBDD {
                 case "exemplaire" :
                     return $this->selectAllExemplairesRevue($id);
                 case "commandedocument" :
-                    return $this->selectAllCommandesLivre($id);
+                    return $this->selectAllCommandesDocument($id);
                 default:
                     // cas d'un select portant sur une table simple			
                     $param = array(
@@ -80,7 +83,7 @@ class AccessBDD {
      * @return lignes de la requete
      */
     public function selectAllTableSimple($table) {
-        $req = "select * from $table order by libelle;";
+        $req = "select * from $table order by libelle";
         return $this->conn->query($req);
     }
 
@@ -144,17 +147,34 @@ class AccessBDD {
     }
 
     /**
+     * Récupération de toutes les lignes de la table Commande Document (livres ou dvd)
+     * @return lignes de la requête
+     */
+    public function selectAllCommandesDocuments() {
+        $req = "Select c.id, c.dateCommande, c.montant, cd.nbExemplaire, cd.idSuivi, cd.idLivreDvd, s.libelle AS libelleSuivi, ld.id, l.id ";
+        $req .= "from commande c ";
+        $req .= "join commandedocument cd on c.id = cd.id ";
+        $req .= "join suivi s on cd.idSuivi = s.id ";
+        $req .= "join livres_dvd ld on cd.idLivreDvd = ld.id ";
+        $req .= "join livre l on ld.id = l.id ";
+        $req .= "order by c.dateCommande DESC";
+        return $this->conn->query($req);
+    }
+    
+    /**
      * Récupération de toutes les commandes d'un livre
      * @param type $id id de la commande livre
      * @return lignes de la requête
      */
-    public function selectAllCommandesLivre($id) {
+    public function selectAllCommandesDocument($id) {
         $param = ["idDocument" => $id];
-        $req = "Select c.id, c.dateCommande, c.montant, cd.nbExemplaire, cd.idSuivi, cd.idLivreDvd, s.libelle ";
+        $req = "Select c.id, c.dateCommande, c.montant, cd.nbExemplaire, cd.idSuivi, cd.idLivreDvd, s.libelle as libelleSuivi ";
         $req .= "from commande c ";
         $req .= "join commandedocument cd on c.id=cd.id ";
         $req .= "join suivi s on cd.idSuivi=s.id ";
-        $req .= "where cd.id=c.id ";
+        $req .= "join livres_dvd ld on cd.idLivreDvd=ld.id ";
+        $req .= "where cd.id=c.id and ld.id = :idDocument ";
+        //$req .= "where cd.id=c.id ";
         $req .= "order by c.dateCommande DESC";
         return $this->conn->query($req, $param);
     }
@@ -202,8 +222,8 @@ class AccessBDD {
                     return $this->insertDvd($champs);
                 case "revue" :
                     return $this->insertRevue($champs);
-                case "commandelivre" :
-                    return $this->insertCommandeLivre($champs);
+                case "commandedocument" :
+                    return $this->insertCommandeDocument($champs);
                 default:
                     // cas d'un insert portant sur une table simple
                     return $this->insertSimple($table, $champs);
@@ -281,7 +301,7 @@ class AccessBDD {
      * Ajout d'une commande de type livre
      * @param type $champs non et valeur de chaque champs
      */
-    public function insertCommandeLivre($champs) {
+    public function insertCommandeDocument($champs) {
         // tableau associatif des données de commande
         $champsCommande = [
             "Id" => $champs["Id"],
@@ -290,7 +310,7 @@ class AccessBDD {
         ];
         $resultCommande = $this->insertSimple("commande", $champsCommande);
 
-        // tableau associatif des données commande document (ici livre)
+        // tableau associatif des données commande document
         $champsCommandeDocument = [
             "Id" => $champs["Id"],
             "NbExemplaire" => $champs["NbExemplaire"],
@@ -368,6 +388,8 @@ class AccessBDD {
                     return $this->updateDvd($id, $champs);
                 case "revue" :
                     return $this->updateRevue($id, $champs);
+                case "commandedocument" :
+                    return $this->updateCommandeDocument($id, $champs);
                 default:
                     // cas d'un insert portant sur une table simple
                     return $this->updateSimple($table, $id, $champs);
@@ -457,6 +479,33 @@ class AccessBDD {
         return $resultDocument && $resultRevue;
     }
 
+    /**
+     * Modification d'une commande document
+     * @param type $id
+     * @param type $champs
+     * @return type
+     */
+    public function updateCommandeDocument($id, $champs) {
+        // tableau associatif des données commande document
+        $champsCommandeDocument = [
+            "Id" => $champs["Id"],
+            "NbExemplaire" => $champs["NbExemplaire"],
+            "IdLivreDvd" => $champs["IdLivreDvd"],
+            "IdSuivi" => $champs["IdSuivi"]
+        ];
+        $resultCommandeDocument = $this->updateSimple("commandedocument", $id, $champsCommandeDocument);
+
+        // tableau associatif des données commande
+        $champsCommande = [
+            "Id" => $champs["Id"],
+            "DateCommande" => $champs["DateCommande"],
+            "Montant" => $champs["Montant"]
+        ];
+        $resultCommande = $this->updateSimple("commande", $id, $champsCommande);
+
+        return $resultCommandeDocument && $resultCommande;
+    }
+
     public function deleteSimple($table, $champs) {
         if ($this->conn != null) {
             // construction de la requête
@@ -487,6 +536,8 @@ class AccessBDD {
                     return $this->deleteDvd($champs);
                 case "revue" :
                     return $this->deleteRevue($champs);
+                case "commandedocument" :
+                    return $this->deleteCommandeDocument($champs);
                 default:
                     // cas d'un insert portant sur une table simple
                     return $this->deleteSimple($table, $champs);
@@ -585,6 +636,32 @@ class AccessBDD {
         $resultDocument = $this->deleteSimple("document", $champsDocument);
 
         return $resultRevue && $resultDocument;
+    }
+
+    /**
+     * Suppression d'une commande document
+     * @param type $champs nom et valeur de chaque champs
+     * @return 
+     */
+    public function deleteCommandeDocument($champs) {
+        // tableau associatif des données commande
+        $champsCommande = [
+            "Id" => $champs["Id"],
+            "DateCommande" => $champs["DateCommande"],
+            "Montant" => $champs["Montant"]
+        ];
+        $resultCommande = $this->deleteSimple("commande", $champsCommande);
+
+        // tableau associatif des données commande document
+        $champsCommandeDocument = [
+            "Id" => $champs["Id"],
+            "NbExemplaire" => $champs["NbExemplaire"],
+            "IdLivreDvd" => $champs["IdLivreDvd"],
+            "IdSuivi" => $champs["IdSuivi"]
+        ];
+        $resultCommandeDocument = $this->deleteSimple("commandedocument", $champsCommandeDocument);
+
+        return $resultCommande && $resultCommandeDocument;
     }
 
 }
