@@ -21,7 +21,7 @@ class Controle{
     }
 
     /**
-     * réponse renvoyée (affichée) au client au format json
+     * Réponse renvoyée (affichée) au client au format json
      * @param int $code code standard HTTP
      * @param string $message message correspondant au code
      * @param array $result résultat de la demande 
@@ -36,7 +36,7 @@ class Controle{
     }
 
     /**
-     * requete arrivée en GET (select)
+     * Requête arrivée en GET (select)
      * @param string $table nom de la table
      * @param string $id valeur de l'id
      */
@@ -54,9 +54,21 @@ class Controle{
         }
     }
 
+    /**
+     * Requête arrivée en GET (select)
+     * @param type $contenu de la table utilisateur
+     */
+    public function getUtilisateur($contenu){
+        $result = $this->accessBDD->selectUtilisateur($contenu);
+        if($result == null || $result == false){
+            $this->reponse(400, "requete invalide");
+        }else{
+            $this->reponse(200, "OK", $result);
+        }
+    }
    
     /**
-     * requete arrivée en POST (insert)
+     * Requête arrivée en POST (insert)
      * @param string $table nom de la table
      * @param array $champs nom et valeur des champs
      */
@@ -70,7 +82,7 @@ class Controle{
     }
 
     /**
-     * requete arrivée en PUT (update)
+     * Requête arrivée en PUT (update)
      * @param string $table nom de la table
      * @param string $id valeur de l'id
      * @param array $champs nom et valeur des champs
@@ -85,7 +97,7 @@ class Controle{
     }
 	
      /**
-     * requete arrivée en DELETE
+     * Requête arrivée en DELETE
      * @param string $table nom de la table
      * @param array $champs nom et valeur des champs
      */

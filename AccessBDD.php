@@ -39,10 +39,8 @@ class AccessBDD {
                     return $this->selectAllDvd();
                 case "revue" :
                     return $this->selectAllRevues();
-                case "exemplaire" :
-                    return $this->selectAllExemplairesRevue();
-                case "commandeslivres" :
-                    return $this->selectAllCommandesDocuments();
+                case "echeancessabos" :
+                    return $this->selectAllAbonnementsEcheance();
                 default:
                     // cas d'un select portant sur une table simple, avec tri sur le libellé
                     return $this->selectAllTableSimple($table);
@@ -61,11 +59,11 @@ class AccessBDD {
     public function selectOne($table, $id) {
         if ($this->conn != null) {
             switch ($table) {
-                case "exemplaire" :
-                    return $this->selectAllExemplairesRevue($id);
-                case "commandedocument" :
-                    return $this->selectAllCommandesDocument($id);
-                case "commanderevue" :
+                case "exemplairesdocument" :
+                    return $this->selectAllExemplairesDocument($id);
+                case "commandesdocuments" :
+                    return $this->selectCommandesDocument($id);
+                case "abonnementsrevue" :
                     return $this->selectAllAbonnementsRevue($id);
                 default:
                     // cas d'un select portant sur une table simple			
@@ -135,40 +133,39 @@ class AccessBDD {
     }
 
     /**
-     * Récupération de tous les exemplaires d'une revue
-     * @param string $id id de la revue
+     * Récupération de tous les exemplaires d'un documment
+     * @param string $id id du document concerné
      * @return lignes de la requete
      */
-    public function selectAllExemplairesRevue($id) {
-        $param = ["id" => $id];
+    public function selectAllExemplairesDocument($id) {
+        $param = ["idDocument" => $id];
         $req = "Select e.id, e.numero, e.dateAchat, e.photo, e.idEtat ";
         $req .= "from exemplaire e join document d on e.id=d.id ";
-        $req .= "where e.id = :id ";
+        $req .= "where e.id= :idDocument ";
         $req .= "order by e.dateAchat DESC";
         return $this->conn->query($req, $param);
     }
 
     /**
-     * Récupération de toutes les lignes de la table Commande Document (livres ou dvd)
+     * Récupération de toutes les lignes de la table Abonnement arrivant à échéance (-30 jours)
      * @return lignes de la requête
      */
-    public function selectAllCommandesDocuments() {
-        $req = "Select c.id, c.dateCommande, c.montant, cd.nbExemplaire, cd.idSuivi, cd.idLivreDvd, s.libelle AS libelleSuivi, ld.id, l.id ";
-        $req .= "from commande c ";
-        $req .= "join commandedocument cd on c.id = cd.id ";
-        $req .= "join suivi s on cd.idSuivi = s.id ";
-        $req .= "join livres_dvd ld on cd.idLivreDvd = ld.id ";
-        $req .= "join livre l on ld.id = l.id ";
-        $req .= "order by c.dateCommande DESC";
+    public function selectAllAbonnementsEcheance() {
+        $req = "Select a.id, a.dateFinAbonnement, a.idRevue, d.id, d.titre as TitreRevue ";
+        $req .= "from abonnement a ";
+        $req .= "join revue r on a.idRevue=r.id ";
+        $req .= "join document d on r.id=d.id ";
+        $req .= "where datediff(current_date(), a.dateFinAbonnement) < 30 ";
+        $req .= "order by a.dateFinAbonnement ASC";
         return $this->conn->query($req);
     }
-
+    
     /**
      * Récupération de toutes les commandes d'un livre
      * @param type $id id de la commande livre
-     * @return lignes de la requête
+     * @return lignes de la requête/gu hi z
      */
-    public function selectAllCommandesDocument($id) {
+    public function selectCommandesDocument($id) {
         $param = ["idDocument" => $id];
         $req = "Select c.id, c.dateCommande, c.montant, cd.nbExemplaire, cd.idSuivi, cd.idLivreDvd, s.libelle as libelleSuivi ";
         $req .= "from commande c ";
@@ -191,8 +188,24 @@ class AccessBDD {
         $req = "Select c.id, c.dateCommande, c.montant, a.id, a.dateFinAbonnement, a.idRevue ";
         $req .= "from commande c ";
         $req .= "join abonnement a on c.id=a.id ";
-        $req .= "where c.id=a.id ";
+        $req .= "where c.id=a.id and a.idRevue= :idRevue ";
         $req .= "order by c.dateCommande DESC";
+        return $this->conn->query($req, $param);
+    }
+
+    /**
+     * Récupèré les informations d'un utilisateur cible
+     * @param type $contenu contenu d'identification de l'utilisateur ciblé
+     * @return lignes de la requête
+     */
+    public function selectUtilisateur($contenu) {
+        $param = [
+            "login" => $contenu["Login"],
+            "pwd" => $contenu["Pwd"]
+        ];
+        $req = "Select u.idService ";
+        $req .= "from utilisateur u ";
+        $req .= "where login= :login and pwd= :pwd";
         return $this->conn->query($req, $param);
     }
 
@@ -241,7 +254,7 @@ class AccessBDD {
                     return $this->insertRevue($champs);
                 case "commandedocument" :
                     return $this->insertCommandeDocument($champs);
-                case "commanderevue" :
+                case "abonnement" :
                     return $this->insertAbonnementRevue($champs);
                 default:
                     // cas d'un insert portant sur une table simple
@@ -433,7 +446,7 @@ class AccessBDD {
                     return $this->updateRevue($id, $champs);
                 case "commandedocument" :
                     return $this->updateCommandeDocument($id, $champs);
-                case "commanderevue" : 
+                case "commanderevue" :
                     return $this->updateCommandeRevue($id, $champs);
                 default:
                     // cas d'un insert portant sur une table simple
@@ -573,10 +586,10 @@ class AccessBDD {
             "Montant" => $champs["Montant"]
         ];
         $resultCommande = $this->updateSimple("commande", $id, $champsCommande);
-        
+
         return $resultAbonnement && $resultCommande;
     }
-    
+
     public function deleteSimple($table, $champs) {
         if ($this->conn != null) {
             // construction de la requête
@@ -598,7 +611,7 @@ class AccessBDD {
      * @param array $champs nom et valeur de chaque champs
      * @return true si la suppression a fonctionné
      */
-    public function deleteOne($table, $champs) {
+    public function deleteOne($table, $champs, $id = "") {
         if ($this->conn != null && $champs != null) {
             switch ($table) {
                 case "livre" :
@@ -609,8 +622,8 @@ class AccessBDD {
                     return $this->deleteRevue($champs);
                 case "commandedocument" :
                     return $this->deleteCommandeDocument($champs);
-                case "commanderevue" : 
-                    return $this->deleteCommandeRevue($champs);
+                case "abonnement" :
+                    return $this->deleteAbonnement($champs);
                 default:
                     // cas d'un insert portant sur une table simple
                     return $this->deleteSimple($table, $champs);
@@ -736,29 +749,30 @@ class AccessBDD {
 
         return $resultCommande && $resultCommandeDocument;
     }
-    
+
     /**
-     * Suppression d'une commande revue
+     * Suppression d'un abonnement
      * @param type $champs non et valeur de chaque champs
      * @return 
      */
-    public function deleteCommandeRevue($champs) {
+    public function deleteAbonnement($champs) {
         // tableau associatif des données commande
-         $champsCommande = [
+        $champsCommande = [
             "Id" => $champs["Id"],
             "DateCommande" => $champs["DateCommande"],
             "Montant" => $champs["Montant"]
         ];
         $resultCommande = $this->deleteSimple("commande", $champsCommande);
-        
-         // tableau associatif des données abonnement
+
+        // tableau associatif des données abonnement
         $champsAbonnement = [
             "Id" => $champs["Id"],
             "DateFinAbonnement" => $champs["DateFinAbonnement"],
             "IdRevue" => $champs["IdRevue"]
         ];
         $resultAbonnement = $this->deleteSimple("abonnement", $champsAbonnement);
-        
+
         return $resultCommande && $resultAbonnement;
     }
+
 }
