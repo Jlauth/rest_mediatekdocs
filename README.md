@@ -1,3 +1,4 @@
+
 Cette API permet de réaliser des opérations sur la BDD Mediatek86 qui doit être préalablement créée puis remplie avec le script mediatek86.sql.<br />
 L'API actuelle fonctonne avec une BDD MySQL en localhost, port 3306, en accès "root" sans pwd, juste pour des tests en local. Pour une mise en production, il faudra modifier les paramètres du fichier AccessBDD.php et sécuriser la BDD avec un user.
 Le projet a été fait sous NetBeans.<br />
