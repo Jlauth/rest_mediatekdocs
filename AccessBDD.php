@@ -41,6 +41,8 @@ class AccessBDD {
                     return $this->selectAllRevues();
                 case "echeancessabos" :
                     return $this->selectAllAbonnementsEcheance();
+                case "exemplairesdocument" :
+                    return $this->selectAllExemplairesDocument();
                 default:
                     // cas d'un select portant sur une table simple, avec tri sur le libellé
                     return $this->selectAllTableSimple($table);
@@ -59,12 +61,16 @@ class AccessBDD {
     public function selectOne($table, $id) {
         if ($this->conn != null) {
             switch ($table) {
-                case "exemplairesdocument" :
-                    return $this->selectAllExemplairesDocument($id);
+                case "detaildocument" :
+                    return $this->selectDetailExemplaire($id);
                 case "commandesdocuments" :
                     return $this->selectCommandesDocument($id);
                 case "abonnementsrevue" :
                     return $this->selectAllAbonnementsRevue($id);
+                case "exemplairesdocument" :
+                    return $this->selectAllExemplairesDocument($id);
+                case "detaildocument" :
+                    return $this->selectDetailExemplaire($id);
                 default:
                     // cas d'un select portant sur une table simple			
                     $param = array(
@@ -98,7 +104,7 @@ class AccessBDD {
         $req .= "join genre g on g.id=d.idGenre ";
         $req .= "join public p on p.id=d.idPublic ";
         $req .= "join rayon r on r.id=d.idRayon ";
-        $req .= "order by titre ";
+        $req .= "order by id ASC";
         return $this->conn->query($req);
     }
 
@@ -113,13 +119,13 @@ class AccessBDD {
         $req .= "join genre g on g.id=d.idGenre ";
         $req .= "join public p on p.id=d.idPublic ";
         $req .= "join rayon r on r.id=d.idRayon ";
-        $req .= "order by titre ";
+        $req .= "order by titre";
         return $this->conn->query($req);
     }
 
     /**
      * Récupération de toutes les lignes de la table Revue et les tables associées
-     * @return lignes de la requete
+     * @return lignes de la rêquete
      */
     public function selectAllRevues() {
         $req = "Select l.id, l.periodicite, d.titre, d.image, l.delaiMiseADispo, ";
@@ -135,13 +141,29 @@ class AccessBDD {
     /**
      * Récupération de tous les exemplaires d'un documment
      * @param string $id id du document concerné
-     * @return lignes de la requete
+     * @return lignes de la rêquete
      */
     public function selectAllExemplairesDocument($id) {
         $param = ["idDocument" => $id];
         $req = "Select e.id, e.numero, e.dateAchat, e.photo, e.idEtat ";
         $req .= "from exemplaire e join document d on e.id=d.id ";
-        $req .= "where e.id= :idDocument ";
+        $req .= "where e.id=:idDocument ";
+        $req .= "order by e.dateAchat DESC";
+        return $this->conn->query($req, $param);
+    }
+
+    /**
+     * Récupération du détail de tous les exemplaires d'un document
+     * @param type $id id du document concerné
+     * @return lignes de la requête
+     */
+    public function selectDetailExemplaire($id) {
+        $param = ["idDocument" => $id];
+        $req = "Select e.id, e.numero, e.dateAchat, e.photo, e.idEtat, et.id, et.libelle as LibelleEtat ";
+        $req .= "from exemplaire e ";
+        $req .= "join etat et on e.idEtat = et.id ";
+        $req .= "join document d on e.id=d.id ";
+        $req .= "where e.id=:idDocument ";
         $req .= "order by e.dateAchat DESC";
         return $this->conn->query($req, $param);
     }
@@ -159,7 +181,7 @@ class AccessBDD {
         $req .= "order by a.dateFinAbonnement ASC";
         return $this->conn->query($req);
     }
-    
+
     /**
      * Récupération de toutes les commandes d'un livre
      * @param type $id id de la commande livre
@@ -194,7 +216,7 @@ class AccessBDD {
     }
 
     /**
-     * Récupèré les informations d'un utilisateur cible
+     * Récupère les informations d'un utilisateur cible
      * @param type $contenu contenu d'identification de l'utilisateur ciblé
      * @return lignes de la requête
      */
@@ -444,6 +466,8 @@ class AccessBDD {
                     return $this->updateDvd($id, $champs);
                 case "revue" :
                     return $this->updateRevue($id, $champs);
+                case "modifierexemplaire" :
+                    return $this->updateExemplaire($id, $champs);
                 case "commandedocument" :
                     return $this->updateCommandeDocument($id, $champs);
                 case "commanderevue" :
@@ -588,6 +612,31 @@ class AccessBDD {
         $resultCommande = $this->updateSimple("commande", $id, $champsCommande);
 
         return $resultAbonnement && $resultCommande;
+    }
+
+    /**
+     * Modification d'un exemplaire
+     * @param type $id
+     * @param type $champs
+     * @return type
+     */
+    public function updateExemplaire($id, $champs) {
+        $champsExemplaire = [
+            'id' => $champs['Id'],
+            'numero' => $champs['Numero'],
+            'dateAchat' => $champs['DateAchat'],
+            'photo' => $champs['Photo'],
+            'idEtat' => $champs['IdEtat']
+        ];
+        $requete = "UPDATE exemplaire SET ";
+        foreach ($champsExemplaire as $key => $value) {
+            $requete .= "$key=:$key,";
+        }
+        $requete = substr($requete, 0, strlen($requete) - 1);
+        $requete .= " WHERE id=:id AND numero=:numero;";
+        $champsExemplaire['numero'] = $id;
+        $updateExemplaire = $this->conn->execute($requete, $champsExemplaire);
+        return $updateExemplaire;
     }
 
     public function deleteSimple($table, $champs) {
