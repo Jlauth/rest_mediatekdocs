@@ -39,6 +39,8 @@ class AccessBDD {
                     return $this->selectAllDvd();
                 case "revue" :
                     return $this->selectAllRevues();
+                case "commandesdocuments" : 
+                    return $this->selectAllCommandesDocument();
                 case "echeancessabos" :
                     return $this->selectAllAbonnementsEcheance();
                 case "exemplairesdocument" :
@@ -64,13 +66,17 @@ class AccessBDD {
                 case "detaildocument" :
                     return $this->selectDetailExemplaire($id);
                 case "commandesdocuments" :
-                    return $this->selectCommandesDocument($id);
+                    return $this->selectAllCommandesDocument($id);
                 case "abonnementsrevue" :
                     return $this->selectAllAbonnementsRevue($id);
                 case "exemplairesdocument" :
                     return $this->selectAllExemplairesDocument($id);
                 case "detaildocument" :
                     return $this->selectDetailExemplaire($id);
+                case "commandeid" :
+                    return $this->selectCommandeId($id);
+                case "numeroparution" :
+                    return $this->selectParutionRevue($id);
                 default:
                     // cas d'un select portant sur une table simple			
                     $param = array(
@@ -167,6 +173,21 @@ class AccessBDD {
         $req .= "order by e.dateAchat DESC";
         return $this->conn->query($req, $param);
     }
+    
+    /**
+     * Récupération du numéro de parution de la revue correspondante
+     * @param type $id id de l'exemplaire concerné
+     * @return lignes de la requête
+     */
+    public function selectParutionRevue($id) {
+        $param = ["numero" => $id];
+        $req = "Select e.id, d.id, r.id ";
+        $req .= "from exemplaire e ";
+        $req .= "join document d on e.id = d.id ";
+        $req .= "join revue r on d.id = r.id ";
+        $req .= "where e.numero = :numero";
+        return $this->conn->query($req, $param);
+    }
 
     /**
      * Récupération de toutes les lignes de la table Abonnement arrivant à échéance (-30 jours)
@@ -187,15 +208,14 @@ class AccessBDD {
      * @param type $id id de la commande livre
      * @return lignes de la requête/gu hi z
      */
-    public function selectCommandesDocument($id) {
+    public function selectAllCommandesDocument($id) {
         $param = ["idDocument" => $id];
-        $req = "Select c.id, c.dateCommande, c.montant, cd.nbExemplaire, cd.idSuivi, cd.idLivreDvd, s.libelle as libelleSuivi ";
+        $req = "Select c.id, c.dateCommande, c.montant, cd.id, cd.nbExemplaire, cd.idSuivi, cd.idLivreDvd, s.libelle as libelleSuivi ";
         $req .= "from commande c ";
         $req .= "join commandedocument cd on c.id=cd.id ";
         $req .= "join suivi s on cd.idSuivi=s.id ";
         $req .= "join livres_dvd ld on cd.idLivreDvd=ld.id ";
         $req .= "where cd.id=c.id and ld.id = :idDocument ";
-        //$req .= "where cd.id=c.id ";
         $req .= "order by c.dateCommande DESC";
         return $this->conn->query($req, $param);
     }
@@ -215,6 +235,18 @@ class AccessBDD {
         return $this->conn->query($req, $param);
     }
 
+    /**
+     * Récupération de l'id de la commande en fonction du param
+     * @param type $id id de la commande
+     * @return ligne de la requête
+     */
+    public function selectCommandeId($id) {
+        $param = ["id" => $id];
+        $req = "Select c.id from commande c ";
+        $req .= "where c.id = :id";
+        return $this->conn->query($req, $param);
+    }
+    
     /**
      * Récupère les informations d'un utilisateur cible
      * @param type $contenu contenu d'identification de l'utilisateur ciblé
@@ -660,7 +692,7 @@ class AccessBDD {
      * @param array $champs nom et valeur de chaque champs
      * @return true si la suppression a fonctionné
      */
-    public function deleteOne($table, $champs, $id = "") {
+    public function deleteOne($table, $champs) {
         if ($this->conn != null && $champs != null) {
             switch ($table) {
                 case "livre" :
@@ -674,7 +706,7 @@ class AccessBDD {
                 case "abonnement" :
                     return $this->deleteAbonnement($champs);
                 default:
-                    // cas d'un insert portant sur une table simple
+                    // cas d'un delete portant sur une table simple
                     return $this->deleteSimple($table, $champs);
             }
         } else {
