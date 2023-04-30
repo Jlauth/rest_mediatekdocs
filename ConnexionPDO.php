@@ -49,7 +49,7 @@ class ConnexionPDO {
      * @param array $param
      * @return lignes récupérées
      */
-    public function query($requete, $param=null){
+    public function query($requete, $param = null) {
         try{
             $requetePrepare = $this->conn->prepare($requete);
             if($param != null){
@@ -57,8 +57,12 @@ class ConnexionPDO {
                     $requetePrepare->bindParam(":$key", $value);
                 }
             }
-            $requetePrepare->execute();				
+            $reponse = $requetePrepare->execute();
+            if($reponse == true) {
             return $requetePrepare->fetchAll(PDO::FETCH_ASSOC);
+            } else {
+                return false;
+            }
         }catch(Exception $e){
             return null;
         }		
